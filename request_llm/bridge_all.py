@@ -224,14 +224,12 @@ if "newbing-free" in AVAIL_LLM_MODELS:
         })
     except:
         print(trimmed_format_exc())
-
-if "azure-gpt35" in AVAIL_LLM_MODELS:
-    # azure openai
+if "azure-gpt-3.5" in AVAIL_LLM_MODELS:
     try:
-        from .bridge_azure_test import predict_no_ui_long_connection as azure_noui
-        from .bridge_azure_test import predict as azure_ui
+        from .bridge_azure import predict_no_ui_long_connection as azure_noui
+        from .bridge_azure import predict as azure_ui
         model_info.update({
-            "azure-gpt35":{
+            "azure-gpt-3.5":{
                 "fn_with_ui": azure_ui,
                 "fn_without_ui": azure_noui,
                 "endpoint": get_conf("AZURE_ENDPOINT"),

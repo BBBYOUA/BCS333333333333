@@ -114,10 +114,10 @@ def predict(inputs, llm_kwargs, plugin_kwargs, chatbot, history=[], system_promp
                     yield from update_ui(chatbot=chatbot, history=history, msg=status_text) # 刷新界面
 
                 except Exception as e:
-                    traceback.print_exc()
-                    yield from update_ui(chatbot=chatbot, history=history, msg="Json解析不合常规") # 刷新界面
+                    from toolbox import trimmed_format_exc
+                    err = f"\n```\n{trimmed_format_exc()}\n```\n"
+                    yield from update_ui(chatbot=chatbot, history=history, msg="Json解析不合常规"+err) # 刷新界面
                     chunk = get_full_error(chunk, stream_response)
-                    
                     error_msg = chunk                    
                     yield from update_ui(chatbot=chatbot, history=history, msg="Json异常" + error_msg) # 刷新界面
                     return
@@ -141,21 +141,17 @@ def predict_no_ui_long_connection(inputs, llm_kwargs, history=[], sys_prompt="",
     payload = generate_azure_payload(inputs, llm_kwargs, history, system_prompt=sys_prompt, stream=True)
     retry = 0
     while True:
-
         try:
             openai.api_type = "azure"            
             openai.api_version = AZURE_API_VERSION
             openai.api_base = AZURE_ENDPOINT
             openai.api_key = AZURE_API_KEY
             response = openai.ChatCompletion.create(timeout=TIMEOUT_SECONDS, **payload);break
-        
         except:  
             retry += 1
             traceback.print_exc()
             if retry > MAX_RETRY: raise TimeoutError
             if MAX_RETRY!=0: print(f'请求超时，正在重试 ({retry}/{MAX_RETRY}) ……')     
-        
-
     stream_response =  response
     result = ''
     while True:
