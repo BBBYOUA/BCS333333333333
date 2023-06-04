@@ -16,11 +16,7 @@ from toolbox import get_conf, trimmed_format_exc
 from .bridge_chatgpt import predict_no_ui_long_connection as chatgpt_noui
 from .bridge_chatgpt import predict as chatgpt_ui
 
-from .bridge_azure_test import predict_no_ui_long_connection as azure_noui
-from .bridge_azure_test import predict as azure_ui
 
-from .bridge_chatglm import predict_no_ui_long_connection as chatglm_noui
-from .bridge_chatglm import predict as chatglm_ui
 
 from .bridge_newbing import predict_no_ui_long_connection as newbing_noui
 from .bridge_newbing import predict as newbing_ui
@@ -96,15 +92,6 @@ model_info = {
         "token_cnt": get_token_num_gpt4,
     },
 
-    # azure openai
-    "azure-gpt35":{
-        "fn_with_ui": azure_ui,
-        "fn_without_ui": azure_noui,
-        "endpoint": get_conf("AZURE_ENDPOINT"),
-        "max_token": 4096,
-        "tokenizer": tokenizer_gpt35,
-        "token_cnt": get_token_num_gpt35,
-    },
 
     # api_2d
     "api2d-gpt-3.5-turbo": {
@@ -125,15 +112,7 @@ model_info = {
         "token_cnt": get_token_num_gpt4,
     },
 
-    # chatglm
-    "chatglm": {
-        "fn_with_ui": chatglm_ui,
-        "fn_without_ui": chatglm_noui,
-        "endpoint": None,
-        "max_token": 1024,
-        "tokenizer": tokenizer_gpt35,
-        "token_cnt": get_token_num_gpt35,
-    },
+
     # newbing
     "newbing": {
         "fn_with_ui": newbing_ui,
@@ -200,6 +179,20 @@ if "moss" in AVAIL_LLM_MODELS:
             "token_cnt": get_token_num_gpt35,
         },
     })
+if "chatglm" in AVAIL_LLM_MODELS:
+    # chatglm
+    from .bridge_chatglm import predict_no_ui_long_connection as chatglm_noui
+    from .bridge_chatglm import predict as chatglm_ui
+    model_info.update({
+        "chatglm": {
+            "fn_with_ui": chatglm_ui,
+            "fn_without_ui": chatglm_noui,
+            "endpoint": None,
+            "max_token": 1024,
+            "tokenizer": tokenizer_gpt35,
+            "token_cnt": get_token_num_gpt35,
+        },
+    })
 if "stack-claude" in AVAIL_LLM_MODELS:
     from .bridge_stackclaude import predict_no_ui_long_connection as claude_noui
     from .bridge_stackclaude import predict as claude_ui
@@ -228,6 +221,24 @@ if "newbing-free" in AVAIL_LLM_MODELS:
                 "tokenizer": tokenizer_gpt35,
                 "token_cnt": get_token_num_gpt35,
             }
+        })
+    except:
+        print(trimmed_format_exc())
+
+if "azure-gpt35" in AVAIL_LLM_MODELS:
+    # azure openai
+    try:
+        from .bridge_azure_test import predict_no_ui_long_connection as azure_noui
+        from .bridge_azure_test import predict as azure_ui
+        model_info.update({
+            "azure-gpt35":{
+                "fn_with_ui": azure_ui,
+                "fn_without_ui": azure_noui,
+                "endpoint": get_conf("AZURE_ENDPOINT"),
+                "max_token": 4096,
+                "tokenizer": tokenizer_gpt35,
+                "token_cnt": get_token_num_gpt35,
+            },
         })
     except:
         print(trimmed_format_exc())
