@@ -1,194 +1,287 @@
-from toolbox import update_ui
-from toolbox import CatchException, report_execption, write_results_to_file, get_conf
-import re, requests, unicodedata, os
-from .crazy_utils import request_gpt_model_in_new_thread_with_ui_alive
-def download_arxiv_(url_pdf):
-    if 'arxiv.org' not in url_pdf:
-        if ('.' in url_pdf) and ('/' not in url_pdf):
-            new_url = 'https://arxiv.org/abs/'+url_pdf
-            print('下载编号：', url_pdf, '自动定位：', new_url)
-            # download_arxiv_(new_url)
-            return download_arxiv_(new_url)
-        else:
-            print('不能识别的URL！')
-            return None
-    if 'abs' in url_pdf:
-        url_pdf = url_pdf.replace('abs', 'pdf')
-        url_pdf = url_pdf + '.pdf'
+from toolbox import update_ui, trimmed_format_exc, get_conf, objdump, objload, promote_file_to_downloadzone
+from toolbox import CatchException, report_execption, update_ui_lastest_msg, zip_result, gen_time_str
+import glob, os, requests, time
+pj = os.path.join
+ARXIV_CACHE_DIR = os.path.expanduser(f"~/arxiv_cache/")
 
-    url_abs = url_pdf.replace('.pdf', '').replace('pdf', 'abs')
-    title, other_info = get_name(_url_=url_abs)
+# =================================== 工具函数 ===============================================
+沙雕GPT啊别犯这些低级翻译错误  = 'You must to translate "agent" to "智能体". '
+def switch_prompt(pfg, mode):
+    """
+    Generate prompts and system prompts based on the mode for proofreading or translating.
+    Args:
+    - pfg: Proofreader or Translator instance.
+    - mode: A string specifying the mode, either 'proofread' or 'translate_zh'.
 
-    paper_id = title.split()[0]  # '[1712.00559]'
-    if '2' in other_info['year']:
-        title = other_info['year'] + ' ' + title
+    Returns:
+    - inputs_array: A list of strings containing prompts for users to respond to.
+    - sys_prompt_array: A list of strings containing prompts for system prompts.
+    """
+    n_split = len(pfg.sp_file_contents)
+    if mode == 'proofread':
+        inputs_array = [r"Below is a section from an academic paper, proofread this section." + 
+                        r"Do not modify any latex command such as \section, \cite, \begin, \item and equations. " + 
+                        r"Answer me only with the revised text:" + 
+                        f"\n\n{frag}" for frag in pfg.sp_file_contents]
+        sys_prompt_array = ["You are a professional academic paper writer." for _ in range(n_split)]
+    elif mode == 'translate_zh':
+        inputs_array = [r"Below is a section from an English academic paper, translate it into Chinese." + 沙雕GPT啊别犯这些低级翻译错误 + 
+                        r"Do not modify any latex command such as \section, \cite, \begin, \item and equations. " + 
+                        r"Answer me only with the translated text:" + 
+                        f"\n\n{frag}" for frag in pfg.sp_file_contents]
+        sys_prompt_array = ["You are a professional translator." for _ in range(n_split)]
+    else:
+        assert False, "未知指令"
+    return inputs_array, sys_prompt_array
 
-    known_conf = ['NeurIPS', 'NIPS', 'Nature', 'Science', 'ICLR', 'AAAI']
-    for k in known_conf:
-        if k in other_info['comment']:
-            title = k + ' ' + title
+def desend_to_extracted_folder_if_exist(project_folder):
+    """ 
+    Descend into the extracted folder if it exists, otherwise return the original folder.
 
-    download_dir = './gpt_log/arxiv/'
-    os.makedirs(download_dir, exist_ok=True)
+    Args:
+    - project_folder: A string specifying the folder path.
 
-    title_str = title.replace('?', '？')\
-        .replace(':', '：')\
-        .replace('\"', '“')\
-        .replace('\n', '')\
-        .replace('  ', ' ')\
-        .replace('  ', ' ')
+    Returns:
+    - A string specifying the path to the extracted folder, or the original folder if there is no extracted folder.
+    """
+    maybe_dir = [f for f in glob.glob(f'{project_folder}/*') if os.path.isdir(f)]
+    if len(maybe_dir) == 0: return project_folder
+    if maybe_dir[0].endswith('.extract'): return maybe_dir[0]
+    return project_folder
 
-    requests_pdf_url = url_pdf
-    file_path = download_dir+title_str
-    # if os.path.exists(file_path):
-    #     print('返回缓存文件')
-    #     return './gpt_log/arxiv/'+title_str
+def move_project(project_folder, arxiv_id=None):
+    """ 
+    Create a new work folder and copy the project folder to it.
 
-    print('下载中')
-    proxies, = get_conf('proxies')
-    r = requests.get(requests_pdf_url, proxies=proxies)
-    with open(file_path, 'wb+') as f:
-        f.write(r.content)
-    print('下载完成')
+    Args:
+    - project_folder: A string specifying the folder path of the project.
 
-    # print('输出下载命令：','aria2c -o \"%s\" %s'%(title_str,url_pdf))
-    # subprocess.call('aria2c --all-proxy=\"172.18.116.150:11084\" -o \"%s\" %s'%(download_dir+title_str,url_pdf), shell=True)
-
-    x = "%s  %s %s.bib" % (paper_id, other_info['year'], other_info['authors'])
-    x = x.replace('?', '？')\
-        .replace(':', '：')\
-        .replace('\"', '“')\
-        .replace('\n', '')\
-        .replace('  ', ' ')\
-        .replace('  ', ' ')
-    return './gpt_log/arxiv/'+title_str, other_info
-
-
-def get_name(_url_):
-    import os
-    from bs4 import BeautifulSoup
-    print('正在获取文献名！')
-    print(_url_)
-
-    # arxiv_recall = {}
-    # if os.path.exists('./arxiv_recall.pkl'):
-    #     with open('./arxiv_recall.pkl', 'rb') as f:
-    #         arxiv_recall = pickle.load(f)
-
-    # if _url_ in arxiv_recall:
-    #     print('在缓存中')
-    #     return arxiv_recall[_url_]
-
-    proxies, = get_conf('proxies')
-    res = requests.get(_url_, proxies=proxies)
-
-    bs = BeautifulSoup(res.text, 'html.parser')
-    other_details = {}
-
-    # get year
+    Returns:
+    - A string specifying the path to the new work folder.
+    """
+    import shutil, time
+    time.sleep(2)   # avoid time string conflict
+    if arxiv_id is not None:
+        new_workfolder = pj(ARXIV_CACHE_DIR, arxiv_id, 'workfolder')
+    else:
+        new_workfolder = f'gpt_log/{gen_time_str()}'
     try:
-        year = bs.find_all(class_='dateline')[0].text
-        year = re.search(r'(\d{4})', year, re.M | re.I).group(1)
-        other_details['year'] = year
-        abstract = bs.find_all(class_='abstract mathjax')[0].text
-        other_details['abstract'] = abstract
+        shutil.rmtree(new_workfolder)
     except:
-        other_details['year'] = ''
-        print('年份获取失败')
+        pass
+    shutil.copytree(src=project_folder, dst=new_workfolder)
+    return new_workfolder
 
-    # get author
-    try:
-        authors = bs.find_all(class_='authors')[0].text
-        authors = authors.split('Authors:')[1]
-        other_details['authors'] = authors
-    except:
-        other_details['authors'] = ''
-        print('authors获取失败')
+def arxiv_download(chatbot, history, txt):
+    def check_cached_translation_pdf(arxiv_id):
+        translation_dir = pj(ARXIV_CACHE_DIR, arxiv_id, 'translation')
+        if not os.path.exists(translation_dir):
+            os.makedirs(translation_dir)
+        target_file = pj(translation_dir, 'translate_zh.pdf')
+        if os.path.exists(target_file):
+            promote_file_to_downloadzone(target_file)
+            return target_file
+        return False
+    
+    if not txt.startswith('https://arxiv.org'): 
+        return txt, None
+    
+    # <-------------- inspect format ------------->
+    chatbot.append([f"检测到arxiv文档连接", '尝试下载 ...']) 
+    yield from update_ui(chatbot=chatbot, history=history)
+    time.sleep(1) # 刷新界面
 
-    # get comment
-    try:
-        comment = bs.find_all(class_='metatable')[0].text
-        real_comment = None
-        for item in comment.replace('\n', ' ').split('   '):
-            if 'Comments' in item:
-                real_comment = item
-        if real_comment is not None:
-            other_details['comment'] = real_comment
-        else:
-            other_details['comment'] = ''
-    except:
-        other_details['comment'] = ''
-        print('年份获取失败')
+    url_ = txt   # https://arxiv.org/abs/1707.06690
+    if not txt.startswith('https://arxiv.org/abs/'): 
+        msg = f"解析arxiv网址失败, 期望格式例如: https://arxiv.org/abs/1707.06690。实际得到格式: {url_}"
+        yield from update_ui_lastest_msg(msg, chatbot=chatbot, history=history) # 刷新界面
+        return msg, None
+    # <-------------- set format ------------->
+    arxiv_id = url_.split('/abs/')[-1]
+    cached_translation_pdf = check_cached_translation_pdf(arxiv_id)
+    if cached_translation_pdf: return cached_translation_pdf, arxiv_id
 
-    title_str = BeautifulSoup(
-        res.text, 'html.parser').find('title').contents[0]
-    print('获取成功：', title_str)
-    # arxiv_recall[_url_] = (title_str+'.pdf', other_details)
-    # with open('./arxiv_recall.pkl', 'wb') as f:
-    #     pickle.dump(arxiv_recall, f)
-
-    return title_str+'.pdf', other_details
-
+    url_tar = url_.replace('/abs/', '/e-print/')
+    translation_dir = pj(ARXIV_CACHE_DIR, arxiv_id, 'e-print')
+    extract_dst = pj(ARXIV_CACHE_DIR, arxiv_id, 'extract')
+    os.makedirs(translation_dir, exist_ok=True)
+    
+    # <-------------- download arxiv source file ------------->
+    dst = pj(translation_dir, arxiv_id+'.tar')
+    if os.path.exists(dst):
+        yield from update_ui_lastest_msg("调用缓存", chatbot=chatbot, history=history)  # 刷新界面
+    else:
+        yield from update_ui_lastest_msg("开始下载", chatbot=chatbot, history=history)  # 刷新界面
+        proxies, = get_conf('proxies')
+        r = requests.get(url_tar, proxies=proxies)
+        with open(dst, 'wb+') as f:
+            f.write(r.content)
+    # <-------------- extract file ------------->
+    yield from update_ui_lastest_msg("下载完成", chatbot=chatbot, history=history)  # 刷新界面
+    from toolbox import extract_archive
+    extract_archive(file_path=dst, dest_dir=extract_dst)
+    return extract_dst, arxiv_id
+# ========================================= 插件主程序1 =====================================================    
 
 
 @CatchException
-def 下载arxiv论文并翻译摘要(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prompt, web_port):
-
-    CRAZY_FUNCTION_INFO = "下载arxiv论文并翻译摘要，函数插件作者[binary-husky]。正在提取摘要并下载PDF文档……"
-    import glob
-    import os
-
-    # 基本信息：功能、贡献者
-    chatbot.append(["函数插件功能？", CRAZY_FUNCTION_INFO])
+def Latex英文纠错加PDF对比(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prompt, web_port):
+    # <-------------- information about this plugin ------------->
+    chatbot.append([ "函数插件功能？",
+        "对整个Latex项目进行纠错, 用latex编译为PDF对修正处做高亮。函数插件贡献者: Binary-Husky。注意事项: 目前仅支持GPT3.5/GPT4，其他模型转化效果未知。目前对机器学习类文献转化效果最好，其他类型文献转化效果未知。仅在Windows系统进行了测试，其他操作系统表现未知。"])
     yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
 
-    # 尝试导入依赖，如果缺少依赖，则给出安装建议
-    try:
-        import pdfminer, bs4
-    except:
-        report_execption(chatbot, history, 
-            a = f"解析项目: {txt}", 
-            b = f"导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade pdfminer beautifulsoup4```。")
-        yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
-        return
 
-    # 清空历史，以免输入溢出
-    history = []
-
-    # 提取摘要，下载PDF文档
+    # <-------------- check deps ------------->
     try:
-        pdf_path, info = download_arxiv_(txt)
-    except:
-        report_execption(chatbot, history, 
-            a = f"解析项目: {txt}", 
-            b = f"下载pdf文件未成功")
+        import glob, os, time
+        os.system(f'pdflatex -version')
+        from .latex_utils import Latex精细分解与转化, 编译Latex差别
+    except Exception as e:
+        chatbot.append([ f"解析项目: {txt}",
+            f"尝试执行Latex指令失败。Latex没有安装, 或者不在环境变量PATH中。报错信息\n\n```\n\n{trimmed_format_exc()}\n\n```\n\n"])
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
     
-    # 翻译摘要等
-    i_say =            f"请你阅读以下学术论文相关的材料，提取摘要，翻译为中文。材料如下：{str(info)}"
-    i_say_show_user =  f'请你阅读以下学术论文相关的材料，提取摘要，翻译为中文。论文：{pdf_path}'
-    chatbot.append((i_say_show_user, "[Local Message] waiting gpt response."))
+
+    # <-------------- clear history and read input ------------->
+    history = []
+    if os.path.exists(txt):
+        project_folder = txt
+    else:
+        if txt == "": txt = '空空如也的输入栏'
+        report_execption(chatbot, history, a = f"解析项目: {txt}", b = f"找不到本地项目或无权访问: {txt}")
+        yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
+        return
+    file_manifest = [f for f in glob.glob(f'{project_folder}/**/*.tex', recursive=True)]
+    if len(file_manifest) == 0:
+        report_execption(chatbot, history, a = f"解析项目: {txt}", b = f"找不到任何.tex文件: {txt}")
+        yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
+        return
+    
+
+    # <-------------- if is a zip/tar file ------------->
+    project_folder = desend_to_extracted_folder_if_exist(project_folder)
+
+
+    # <-------------- move latex project away from temp folder ------------->
+    project_folder = move_project(project_folder, arxiv_id=None)
+
+
+    # <-------------- if merge_translate_zh is already generated, skip gpt req ------------->
+    if not os.path.exists(project_folder + '/merge_proofread.tex'):
+        yield from Latex精细分解与转化(file_manifest, project_folder, llm_kwargs, plugin_kwargs, chatbot, history, system_prompt, mode='proofread_latex', switch_prompt=switch_prompt)
+
+
+    # <-------------- compile PDF ------------->
+    success = yield from 编译Latex差别(chatbot, history, main_file_original='merge', main_file_modified='merge_proofread', 
+                             work_folder_original=project_folder, work_folder_modified=project_folder, work_folder=project_folder)
+    
+
+    # <-------------- zip PDF ------------->
+    zip_result(project_folder)
+    if success:
+        chatbot.append((f"成功啦", '请查收结果（压缩包）...'))
+        yield from update_ui(chatbot=chatbot, history=history); time.sleep(1) # 刷新界面
+    else:
+        chatbot.append((f"失败了", '虽然PDF生成失败了, 但请查收结果（压缩包）, 内含已经翻译的Tex文档, 也是可读的, 您可以到Github Issue区, 用该压缩包+对话历史存档进行反馈 ...'))
+        yield from update_ui(chatbot=chatbot, history=history); time.sleep(1) # 刷新界面
+
+    # <-------------- we are done ------------->
+    return success
+
+
+# ========================================= 插件主程序2 =====================================================    
+import threading
+global threadLock, waiting_users
+threadLock = threading.Lock()
+waiting_users = 0
+
+@CatchException
+def Latex翻译中文并重新编译PDF(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prompt, web_port):
+    global threadLock, waiting_users
+    # <-------------- information about this plugin ------------->
+    chatbot.append([
+        "函数插件功能？",
+        "对整个Latex项目进行翻译, 生成中文PDF。函数插件贡献者: Binary-Husky。注意事项: 目前仅支持GPT3.5/GPT4，其他模型转化效果未知。目前对机器学习类文献转化效果最好，其他类型文献转化效果未知。仅在Windows系统进行了测试，其他操作系统表现未知。"])
     yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
-    msg = '正常'
-    # ** gpt request **
-    # 单线，获取文章meta信息
-    gpt_say = yield from request_gpt_model_in_new_thread_with_ui_alive(
-        inputs=i_say,
-        inputs_show_user=i_say_show_user,
-        llm_kwargs=llm_kwargs,
-        chatbot=chatbot, history=[],
-        sys_prompt="Your job is to collect information from materials and translate to Chinese。",
-    )
 
-    chatbot[-1] = (i_say_show_user, gpt_say)
-    history.append(i_say_show_user); history.append(gpt_say)
-    yield from update_ui(chatbot=chatbot, history=history, msg=msg) # 刷新界面
-    # 写入文件
-    import shutil
-    # 重置文件的创建时间
-    shutil.copyfile(pdf_path, f'./gpt_log/{os.path.basename(pdf_path)}'); os.remove(pdf_path)
-    res = write_results_to_file(history)
-    chatbot.append(("完成了吗？", res + "\n\nPDF文件也已经下载"))
-    yield from update_ui(chatbot=chatbot, history=history, msg=msg) # 刷新界面
+    chatbot.append([
+        "获取线程锁",
+        f"正在获取多用户线程锁，当前人数{waiting_users}"])
+    yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
 
+    if waiting_users>16:
+        chatbot.append([
+            "获取线程锁",
+            f"正在获取多用户线程锁，当前人数{waiting_users}，人数太多，请稍后重试"])
+        yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
+        return
+    
+    waiting_users += 1
+    threadLock.acquire()
+
+    # <-------------- check deps ------------->
+    try:
+        import glob, os, time
+        os.system(f'pdflatex -version')
+        from .latex_utils import Latex精细分解与转化, 编译Latex差别
+    except Exception as e:
+        chatbot.append([ f"解析项目: {txt}",
+            f"尝试执行Latex指令失败。Latex没有安装, 或者不在环境变量PATH中。报错信息\n\n```\n\n{trimmed_format_exc()}\n\n```\n\n"])
+        yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
+        return
+    
+
+    # <-------------- clear history and read input ------------->
+    history = []
+    txt, arxiv_id = yield from arxiv_download(chatbot, history, txt)
+    if txt.endswith('.pdf'):
+        report_execption(chatbot, history, a = f"解析项目: {txt}", b = f"发现已经存在翻译好的PDF文档")
+        yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
+        return
+    if os.path.exists(txt):
+        project_folder = txt
+    else:
+        if txt == "": txt = '空空如也的输入栏'
+        report_execption(chatbot, history, a = f"解析项目: {txt}", b = f"找不到本地项目或无权访问: {txt}")
+        yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
+        return
+    file_manifest = [f for f in glob.glob(f'{project_folder}/**/*.tex', recursive=True)]
+    if len(file_manifest) == 0:
+        report_execption(chatbot, history, a = f"解析项目: {txt}", b = f"找不到任何.tex文件: {txt}")
+        yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
+        return
+    
+
+    # <-------------- if is a zip/tar file ------------->
+    project_folder = desend_to_extracted_folder_if_exist(project_folder)
+
+
+    # <-------------- move latex project away from temp folder ------------->
+    project_folder = move_project(project_folder, arxiv_id)
+
+
+    # <-------------- if merge_translate_zh is already generated, skip gpt req ------------->
+    if not os.path.exists(project_folder + '/merge_translate_zh.tex'):
+        yield from Latex精细分解与转化(file_manifest, project_folder, llm_kwargs, plugin_kwargs, chatbot, history, system_prompt, mode='translate_zh', switch_prompt=switch_prompt)
+
+
+    # <-------------- compile PDF ------------->
+    success = yield from 编译Latex差别(chatbot, history, main_file_original='merge', main_file_modified='merge_translate_zh', 
+                             work_folder_original=project_folder, work_folder_modified=project_folder, work_folder=project_folder)
+
+    # <-------------- zip PDF ------------->
+    zip_result(project_folder)
+    if success:
+        chatbot.append((f"成功啦", '请查收结果（压缩包）...'))
+        yield from update_ui(chatbot=chatbot, history=history); time.sleep(1) # 刷新界面
+    else:
+        chatbot.append((f"失败了", '虽然PDF生成失败了, 但请查收结果（压缩包）, 内含已经翻译的Tex文档, 也是可读的, 您可以到Github Issue区, 用该压缩包+对话历史存档进行反馈 ...'))
+        yield from update_ui(chatbot=chatbot, history=history); time.sleep(1) # 刷新界面
+
+
+    threadLock.release()
+    waiting_users -= 1
+    # <-------------- we are done ------------->
+    return success
