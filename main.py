@@ -63,21 +63,21 @@ def main():
             with gr_L2(scale=1):
                 with gr.Accordion("输入区", open=True) as area_input_primary:
                     with gr.Row():
-                        txt = gr.Textbox(show_label=False, placeholder="Input question here.").style(container=False)
+                        txt = gr.Textbox(show_label=False, lines=2,placeholder="输入例如https://arxiv.org/abs/2306.00324，然后点击下面的Big Red Button。如果其他人已经翻译过该文章，将直接返回缓存PDF地址。").style(container=False)
+                    # with gr.Row():
+                    #     submitBtn = gr.Button("提交", variant="primary")
                     with gr.Row():
-                        submitBtn = gr.Button("提交", variant="primary")
-                    with gr.Row():
-                        resetBtn = gr.Button("重置", variant="secondary"); resetBtn.style(size="sm")
+                    #     resetBtn = gr.Button("重置", variant="secondary"); resetBtn.style(size="sm")
                         stopBtn = gr.Button("停止", variant="secondary"); stopBtn.style(size="sm")
-                        clearBtn = gr.Button("清除", variant="secondary", visible=False); clearBtn.style(size="sm")
+                    #     clearBtn = gr.Button("清除", variant="secondary", visible=False); clearBtn.style(size="sm")
                     with gr.Row():
                         status = gr.Markdown(f"Tip: 按Enter提交, 按Shift+Enter换行。当前模型: {LLM_MODEL} \n {proxy_info}")
-                with gr.Accordion("基础功能区", open=True) as area_basic_fn:
-                    with gr.Row():
-                        for k in functional:
-                            if ("Visible" in functional[k]) and (not functional[k]["Visible"]): continue
-                            variant = functional[k]["Color"] if "Color" in functional[k] else "secondary"
-                            functional[k]["Button"] = gr.Button(k, variant=variant)
+                # with gr.Accordion("基础功能区", open=True) as area_basic_fn:
+                #     with gr.Row():
+                #         for k in functional:
+                #             if ("Visible" in functional[k]) and (not functional[k]["Visible"]): continue
+                #             variant = functional[k]["Color"] if "Color" in functional[k] else "secondary"
+                #             functional[k]["Button"] = gr.Button(k, variant=variant)
                 with gr.Accordion("函数插件区", open=True) as area_crazy_fn:
                     with gr.Row():
                         gr.Markdown("注意：以下“红颜色”标识的函数插件需从输入区读取路径作为参数.")
@@ -90,13 +90,13 @@ def main():
                     with gr.Row():
                         with gr.Accordion("更多函数插件", open=True):
                             dropdown_fn_list = [k for k in crazy_fns.keys() if not crazy_fns[k].get("AsButton", True)]
-                            with gr.Row():
-                                dropdown = gr.Dropdown(dropdown_fn_list, value=r"打开插件列表", label="").style(container=False)
+                            # with gr.Row():
+                            #     dropdown = gr.Dropdown(dropdown_fn_list, value=r"打开插件列表", label="").style(container=False)
                             with gr.Row():
                                 plugin_advanced_arg = gr.Textbox(show_label=True, label="高级参数输入区", visible=False, 
                                                                  placeholder="这里是特殊函数插件的高级参数输入区").style(container=False)
-                            with gr.Row():
-                                switchy_bt = gr.Button(r"请先从插件列表中选择", variant="secondary")
+                            # with gr.Row():
+                            #     switchy_bt = gr.Button(r"请先从插件列表中选择", variant="secondary")
                     with gr.Row():
                         with gr.Accordion("点击展开“文件上传区”。上传本地文件可供红色函数插件调用。", open=False) as area_file_up:
                             file_upload = gr.Files(label="任何文件, 但推荐上传压缩文件(zip, tar)", file_count="multiple")
@@ -112,43 +112,43 @@ def main():
                 with gr.Accordion("备选输入区", open=True, visible=False) as area_input_secondary:
                     with gr.Row():
                         txt2 = gr.Textbox(show_label=False, placeholder="Input question here.", label="输入区2").style(container=False)
-                    with gr.Row():
-                        submitBtn2 = gr.Button("提交", variant="primary")
-                    with gr.Row():
-                        resetBtn2 = gr.Button("重置", variant="secondary"); resetBtn2.style(size="sm")
-                        stopBtn2 = gr.Button("停止", variant="secondary"); stopBtn2.style(size="sm")
-                        clearBtn2 = gr.Button("清除", variant="secondary", visible=False); clearBtn2.style(size="sm")
+                #     with gr.Row():
+                #         submitBtn2 = gr.Button("提交", variant="primary")
+                #     with gr.Row():
+                #         resetBtn2 = gr.Button("重置", variant="secondary"); resetBtn2.style(size="sm")
+                #         stopBtn2 = gr.Button("停止", variant="secondary"); stopBtn2.style(size="sm")
+                #         clearBtn2 = gr.Button("清除", variant="secondary", visible=False); clearBtn2.style(size="sm")
         # 功能区显示开关与功能区的互动
-        def fn_area_visibility(a):
-            ret = {}
-            ret.update({area_basic_fn: gr.update(visible=("基础功能区" in a))})
-            ret.update({area_crazy_fn: gr.update(visible=("函数插件区" in a))})
-            ret.update({area_input_primary: gr.update(visible=("底部输入区" not in a))})
-            ret.update({area_input_secondary: gr.update(visible=("底部输入区" in a))})
-            ret.update({clearBtn: gr.update(visible=("输入清除键" in a))})
-            ret.update({clearBtn2: gr.update(visible=("输入清除键" in a))})
-            ret.update({plugin_advanced_arg: gr.update(visible=("插件参数区" in a))})
-            if "底部输入区" in a: ret.update({txt: gr.update(value="")})
-            return ret
-        checkboxes.select(fn_area_visibility, [checkboxes], [area_basic_fn, area_crazy_fn, area_input_primary, area_input_secondary, txt, txt2, clearBtn, clearBtn2, plugin_advanced_arg] )
+        # def fn_area_visibility(a):
+        #     ret = {}
+        #     ret.update({area_basic_fn: gr.update(visible=("基础功能区" in a))})
+        #     ret.update({area_crazy_fn: gr.update(visible=("函数插件区" in a))})
+        #     ret.update({area_input_primary: gr.update(visible=("底部输入区" not in a))})
+        #     # ret.update({area_input_secondary: gr.update(visible=("底部输入区" in a))})
+        #     # ret.update({clearBtn: gr.update(visible=("输入清除键" in a))})
+        #     # ret.update({clearBtn2: gr.update(visible=("输入清除键" in a))})
+        #     ret.update({plugin_advanced_arg: gr.update(visible=("插件参数区" in a))})
+        #     if "底部输入区" in a: ret.update({txt: gr.update(value="")})
+        #     return ret
+        # checkboxes.select(fn_area_visibility, [checkboxes], [area_basic_fn, area_crazy_fn, area_input_primary, area_input_secondary, txt, txt2, clearBtn, clearBtn2, plugin_advanced_arg] )
         # 整理反复出现的控件句柄组合
         input_combo = [cookies, max_length_sl, md_dropdown, txt, txt2, top_p, temperature, chatbot, history, system_prompt, plugin_advanced_arg]
         output_combo = [cookies, chatbot, history, status]
         predict_args = dict(fn=ArgsGeneralWrapper(predict), inputs=input_combo, outputs=output_combo)
         # 提交按钮、重置按钮
         cancel_handles.append(txt.submit(**predict_args))
-        cancel_handles.append(txt2.submit(**predict_args))
-        cancel_handles.append(submitBtn.click(**predict_args))
-        cancel_handles.append(submitBtn2.click(**predict_args))
-        resetBtn.click(lambda: ([], [], "已重置"), None, [chatbot, history, status])
-        resetBtn2.click(lambda: ([], [], "已重置"), None, [chatbot, history, status])
-        clearBtn.click(lambda: ("",""), None, [txt, txt2])
-        clearBtn2.click(lambda: ("",""), None, [txt, txt2])
+        # cancel_handles.append(txt2.submit(**predict_args))
+        # cancel_handles.append(submitBtn.click(**predict_args))
+        # cancel_handles.append(submitBtn2.click(**predict_args))
+        # resetBtn.click(lambda: ([], [], "已重置"), None, [chatbot, history, status])
+        # resetBtn2.click(lambda: ([], [], "已重置"), None, [chatbot, history, status])
+        # clearBtn.click(lambda: ("",""), None, [txt, txt2])
+        # clearBtn2.click(lambda: ("",""), None, [txt, txt2])
         # 基础功能区的回调函数注册
-        for k in functional:
-            if ("Visible" in functional[k]) and (not functional[k]["Visible"]): continue
-            click_handle = functional[k]["Button"].click(fn=ArgsGeneralWrapper(predict), inputs=[*input_combo, gr.State(True), gr.State(k)], outputs=output_combo)
-            cancel_handles.append(click_handle)
+        # for k in functional:
+        #     if ("Visible" in functional[k]) and (not functional[k]["Visible"]): continue
+        #     click_handle = functional[k]["Button"].click(fn=ArgsGeneralWrapper(predict), inputs=[*input_combo, gr.State(True), gr.State(k)], outputs=output_combo)
+        #     cancel_handles.append(click_handle)
         # 文件上传区，接收文件后与chatbot的互动
         file_upload.upload(on_file_uploaded, [file_upload, chatbot, txt, txt2, checkboxes], [chatbot, txt, txt2])
         # 函数插件-固定按钮区
@@ -158,28 +158,28 @@ def main():
             click_handle.then(on_report_generated, [file_upload, chatbot], [file_upload, chatbot])
             cancel_handles.append(click_handle)
         # 函数插件-下拉菜单与随变按钮的互动
-        def on_dropdown_changed(k):
-            variant = crazy_fns[k]["Color"] if "Color" in crazy_fns[k] else "secondary"
-            ret = {switchy_bt: gr.update(value=k, variant=variant)}
-            if crazy_fns[k].get("AdvancedArgs", False): # 是否唤起高级插件参数区
-                ret.update({plugin_advanced_arg: gr.update(visible=True,  label=f"插件[{k}]的高级参数说明：" + crazy_fns[k].get("ArgsReminder", [f"没有提供高级参数功能说明"]))})
-            else:
-                ret.update({plugin_advanced_arg: gr.update(visible=False, label=f"插件[{k}]不需要高级参数。")})
-            return ret
-        dropdown.select(on_dropdown_changed, [dropdown], [switchy_bt, plugin_advanced_arg] )
+        # def on_dropdown_changed(k):
+        #     variant = crazy_fns[k]["Color"] if "Color" in crazy_fns[k] else "secondary"
+        #     ret = {switchy_bt: gr.update(value=k, variant=variant)}
+        #     if crazy_fns[k].get("AdvancedArgs", False): # 是否唤起高级插件参数区
+        #         ret.update({plugin_advanced_arg: gr.update(visible=True,  label=f"插件[{k}]的高级参数说明：" + crazy_fns[k].get("ArgsReminder", [f"没有提供高级参数功能说明"]))})
+        #     else:
+        #         ret.update({plugin_advanced_arg: gr.update(visible=False, label=f"插件[{k}]不需要高级参数。")})
+        #     return ret
+        # dropdown.select(on_dropdown_changed, [dropdown], [switchy_bt, plugin_advanced_arg] )
         def on_md_dropdown_changed(k):
             return {chatbot: gr.update(label="当前模型："+k)}
         md_dropdown.select(on_md_dropdown_changed, [md_dropdown], [chatbot] )
         # 随变按钮的回调函数注册
-        def route(k, *args, **kwargs):
-            if k in [r"打开插件列表", r"请先从插件列表中选择"]: return
-            yield from ArgsGeneralWrapper(crazy_fns[k]["Function"])(*args, **kwargs)
-        click_handle = switchy_bt.click(route,[switchy_bt, *input_combo, gr.State(PORT)], output_combo)
-        click_handle.then(on_report_generated, [file_upload, chatbot], [file_upload, chatbot])
+        # def route(k, *args, **kwargs):
+        #     if k in [r"打开插件列表", r"请先从插件列表中选择"]: return
+        #     yield from ArgsGeneralWrapper(crazy_fns[k]["Function"])(*args, **kwargs)
+        # click_handle = switchy_bt.click(route,[switchy_bt, *input_combo, gr.State(PORT)], output_combo)
+        # click_handle.then(on_report_generated, [file_upload, chatbot], [file_upload, chatbot])
         cancel_handles.append(click_handle)
         # 终止按钮的回调函数注册
         stopBtn.click(fn=None, inputs=None, outputs=None, cancels=cancel_handles)
-        stopBtn2.click(fn=None, inputs=None, outputs=None, cancels=cancel_handles)
+        # stopBtn2.click(fn=None, inputs=None, outputs=None, cancels=cancel_handles)
 
     # gradio的inbrowser触发不太稳定，回滚代码到原始的浏览器打开函数
     def auto_opentab_delay():

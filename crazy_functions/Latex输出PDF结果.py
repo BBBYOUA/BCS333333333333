@@ -65,8 +65,10 @@ def move_project(project_folder, arxiv_id=None):
         new_workfolder = pj(ARXIV_CACHE_DIR, arxiv_id, 'workfolder')
     else:
         new_workfolder = f'gpt_log/{gen_time_str()}'
-    try: shutil.rmtree(new_workfolder)
-    except: pass
+    try:
+        shutil.rmtree(new_workfolder)
+    except:
+        pass
     shutil.copytree(src=project_folder, dst=new_workfolder)
     return new_workfolder
 
@@ -190,15 +192,34 @@ def Latex英文纠错加PDF对比(txt, llm_kwargs, plugin_kwargs, chatbot, histo
 
 
 # ========================================= 插件主程序2 =====================================================    
+import threading
+global threadLock, waiting_users
+threadLock = threading.Lock()
+waiting_users = 0
 
 @CatchException
 def Latex翻译中文并重新编译PDF(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prompt, web_port):
+    global threadLock, waiting_users
     # <-------------- information about this plugin ------------->
     chatbot.append([
         "函数插件功能？",
         "对整个Latex项目进行翻译, 生成中文PDF。函数插件贡献者: Binary-Husky。注意事项: 目前仅支持GPT3.5/GPT4，其他模型转化效果未知。目前对机器学习类文献转化效果最好，其他类型文献转化效果未知。仅在Windows系统进行了测试，其他操作系统表现未知。"])
     yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
 
+    chatbot.append([
+        "获取线程锁",
+        f"正在获取多用户线程锁，当前人数{waiting_users}"])
+    yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
+
+    if waiting_users>16:
+        chatbot.append([
+        "获取线程锁",
+        f"正在获取多用户线程锁，当前人数{waiting_users}，人数太多，请稍后重试"])
+        yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
+        return
+    
+    waiting_users += 1
+    threadLock.acquire()
 
     # <-------------- check deps ------------->
     try:
@@ -259,5 +280,8 @@ def Latex翻译中文并重新编译PDF(txt, llm_kwargs, plugin_kwargs, chatbot,
         chatbot.append((f"失败了", '虽然PDF生成失败了, 但请查收结果（压缩包）, 内含已经翻译的Tex文档, 也是可读的, 您可以到Github Issue区, 用该压缩包+对话历史存档进行反馈 ...'))
         yield from update_ui(chatbot=chatbot, history=history); time.sleep(1) # 刷新界面
 
+
+    threadLock.release()
+    waiting_users -= 1
     # <-------------- we are done ------------->
     return success

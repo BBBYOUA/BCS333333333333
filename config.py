@@ -26,7 +26,7 @@ DEFAULT_WORKER_NUM = 3
 
 # [step 4]>> 以下配置可以优化体验，但大部分场合下并不需要修改
 # 对话窗的高度
-CHATBOT_HEIGHT = 1115
+CHATBOT_HEIGHT = 700
 
 # 代码高亮
 CODE_HIGHLIGHT = True
