@@ -136,7 +136,7 @@ def Latex英文纠错加PDF对比(txt, llm_kwargs, plugin_kwargs, chatbot, histo
     try:
         import glob, os, time
         os.system(f'pdflatex -version')
-        from .latex_utils import Latex精细分解与转化, 编译Latex差别
+        from .latex_utils import Latex精细分解与转化, 编译Latex
     except Exception as e:
         chatbot.append([ f"解析项目: {txt}",
             f"尝试执行Latex指令失败。Latex没有安装, 或者不在环境变量PATH中。报错信息\n\n```\n\n{trimmed_format_exc()}\n\n```\n\n"])
@@ -174,7 +174,7 @@ def Latex英文纠错加PDF对比(txt, llm_kwargs, plugin_kwargs, chatbot, histo
 
 
     # <-------------- compile PDF ------------->
-    success = yield from 编译Latex差别(chatbot, history, main_file_original='merge', main_file_modified='merge_proofread', 
+    success = yield from 编译Latex(chatbot, history, main_file_original='merge', main_file_modified='merge_proofread', 
                              work_folder_original=project_folder, work_folder_modified=project_folder, work_folder=project_folder)
     
 
@@ -203,7 +203,7 @@ def Latex翻译中文并重新编译PDF(txt, llm_kwargs, plugin_kwargs, chatbot,
     # <-------------- information about this plugin ------------->
     chatbot.append([
         "函数插件功能？",
-        "对整个Latex项目进行翻译, 生成中文PDF。函数插件贡献者: Binary-Husky。注意事项: 目前仅支持GPT3.5/GPT4，其他模型转化效果未知。目前对机器学习类文献转化效果最好，其他类型文献转化效果未知。仅在Windows系统进行了测试，其他操作系统表现未知。"])
+        "对整个Latex项目进行翻译, 生成中文PDF。函数插件贡献者: Binary-Husky。注意事项: 目前仅支持GPT3.5/GPT4，其他模型转化效果未知。目前对机器学习类文献转化效果最好，其他类型文献转化效果未知。"])
     yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
 
     chatbot.append([
@@ -225,7 +225,7 @@ def Latex翻译中文并重新编译PDF(txt, llm_kwargs, plugin_kwargs, chatbot,
     try:
         import glob, os, time
         os.system(f'pdflatex -version')
-        from .latex_utils import Latex精细分解与转化, 编译Latex差别
+        from .latex_utils import Latex精细分解与转化, 编译Latex
     except Exception as e:
         chatbot.append([ f"解析项目: {txt}",
             f"尝试执行Latex指令失败。Latex没有安装, 或者不在环境变量PATH中。报错信息\n\n```\n\n{trimmed_format_exc()}\n\n```\n\n"])
@@ -268,7 +268,7 @@ def Latex翻译中文并重新编译PDF(txt, llm_kwargs, plugin_kwargs, chatbot,
 
 
     # <-------------- compile PDF ------------->
-    success = yield from 编译Latex差别(chatbot, history, main_file_original='merge', main_file_modified='merge_translate_zh', 
+    success = yield from 编译Latex(chatbot, history, main_file_original='merge', main_file_modified='merge_translate_zh', 
                              work_folder_original=project_folder, work_folder_modified=project_folder, work_folder=project_folder)
 
     # <-------------- zip PDF ------------->
