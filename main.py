@@ -64,8 +64,8 @@ def main():
                 with gr.Accordion("输入区", open=True) as area_input_primary:
                     with gr.Row():
                         txt = gr.Textbox(show_label=False, lines=2,placeholder="输入例如https://arxiv.org/abs/2306.00324，然后点击下面的Big Red Button。如果其他人已经翻译过该文章，将直接返回缓存PDF地址。").style(container=False)
-                    # with gr.Row():
-                    #     submitBtn = gr.Button("提交", variant="primary")
+                    with gr.Row():
+                        submitBtn = gr.Button("提交", variant="primary")
                     with gr.Row():
                     #     resetBtn = gr.Button("重置", variant="secondary"); resetBtn.style(size="sm")
                         stopBtn = gr.Button("停止", variant="secondary"); stopBtn.style(size="sm")
@@ -138,7 +138,7 @@ def main():
         # 提交按钮、重置按钮
         cancel_handles.append(txt.submit(**predict_args))
         # cancel_handles.append(txt2.submit(**predict_args))
-        # cancel_handles.append(submitBtn.click(**predict_args))
+        cancel_handles.append(submitBtn.click(**predict_args))
         # cancel_handles.append(submitBtn2.click(**predict_args))
         # resetBtn.click(lambda: ([], [], "已重置"), None, [chatbot, history, status])
         # resetBtn2.click(lambda: ([], [], "已重置"), None, [chatbot, history, status])

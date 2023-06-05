@@ -82,7 +82,14 @@ def arxiv_download(chatbot, history, txt):
             promote_file_to_downloadzone(target_file)
             return target_file
         return False
-    
+    def is_float(s):
+        try:
+            float(s)
+            return True
+        except ValueError:
+            return False
+    if ('.' in txt) and ('/' not in txt) and is_float(txt):
+        txt = 'https://arxiv.org/abs/' + txt
     if not txt.startswith('https://arxiv.org'): 
         return txt, None
     
@@ -192,34 +199,21 @@ def Latex英文纠错加PDF对比(txt, llm_kwargs, plugin_kwargs, chatbot, histo
 
 
 # ========================================= 插件主程序2 =====================================================    
-import threading
-global threadLock, waiting_users
-threadLock = threading.Lock()
-waiting_users = 0
-
+from toolbox import is_any_api_key
 @CatchException
 def Latex翻译中文并重新编译PDF(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prompt, web_port):
-    global threadLock, waiting_users
+
+    if not is_any_api_key(chatbot._cookies['api_key']):
+        chatbot.append(('缺少api_key。', "缺少api_key。\n\n1. 解决方案：直接在输入区键入api_key，然后回车提交。"))
+        yield from update_ui(chatbot=chatbot, history=history, msg="缺少api_key") # 刷新界面
+        return
+
     # <-------------- information about this plugin ------------->
     chatbot.append([
         "函数插件功能？",
         "对整个Latex项目进行翻译, 生成中文PDF。函数插件贡献者: Binary-Husky。注意事项: 目前仅支持GPT3.5/GPT4，其他模型转化效果未知。目前对机器学习类文献转化效果最好，其他类型文献转化效果未知。"])
     yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
 
-    chatbot.append([
-        "获取线程锁",
-        f"正在获取多用户线程锁，当前人数{waiting_users}"])
-    yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
-
-    if waiting_users>16:
-        chatbot.append([
-        "获取线程锁",
-        f"正在获取多用户线程锁，当前人数{waiting_users}，人数太多，请稍后重试"])
-        yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
-        return
-    
-    waiting_users += 1
-    threadLock.acquire()
 
     # <-------------- check deps ------------->
     try:
@@ -240,6 +234,8 @@ def Latex翻译中文并重新编译PDF(txt, llm_kwargs, plugin_kwargs, chatbot,
         report_execption(chatbot, history, a = f"解析项目: {txt}", b = f"发现已经存在翻译好的PDF文档")
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
+    
+
     if os.path.exists(txt):
         project_folder = txt
     else:
@@ -247,6 +243,7 @@ def Latex翻译中文并重新编译PDF(txt, llm_kwargs, plugin_kwargs, chatbot,
         report_execption(chatbot, history, a = f"解析项目: {txt}", b = f"找不到本地项目或无权访问: {txt}")
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
+    
     file_manifest = [f for f in glob.glob(f'{project_folder}/**/*.tex', recursive=True)]
     if len(file_manifest) == 0:
         report_execption(chatbot, history, a = f"解析项目: {txt}", b = f"找不到任何.tex文件: {txt}")
@@ -281,7 +278,5 @@ def Latex翻译中文并重新编译PDF(txt, llm_kwargs, plugin_kwargs, chatbot,
         yield from update_ui(chatbot=chatbot, history=history); time.sleep(1) # 刷新界面
 
 
-    threadLock.release()
-    waiting_users -= 1
     # <-------------- we are done ------------->
     return success
