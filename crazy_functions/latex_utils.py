@@ -97,11 +97,22 @@ def 寻找Latex主文件(file_manifest, mode):
         else:
             continue
     raise RuntimeError('无法找到一个主Tex文件（包含documentclass关键字）')
-
+def rm_comments(main_file):
+    new_file_remove_comment_lines = []
+    for l in main_file.splitlines():
+        # 删除整行的空注释
+        if l.startswith("%") or (l.startswith(" ") and l.lstrip().startswith("%")):
+            pass
+        else:
+            new_file_remove_comment_lines.append(l)
+    main_file = '\n'.join(new_file_remove_comment_lines)
+    main_file = re.sub(r'(?<!\\)%.*', '', main_file)  # 使用正则表达式查找半行注释, 并替换为空字符串
+    return main_file
 def merge_tex_files_(project_foler, main_file, mode):
     """
     Merge Tex project recrusively
     """
+    main_file = rm_comments(main_file)
     for s in reversed([q for q in re.finditer(r"\\input\{(.*?)\}", main_file, re.M)]):
         f = s.group(1)
         fp = os.path.join(project_foler, f)
@@ -123,19 +134,6 @@ def merge_tex_files(project_foler, main_file, mode):
     P.S. 顺便把CTEX塞进去以支持中文
     P.S. 顺便把Latex的注释去除
     """
-    def rm_comments(main_file):
-        new_file_remove_comment_lines = []
-        for l in main_file.splitlines():
-            # 删除整行的空注释
-            if l.startswith("%") or (l.startswith(" ") and l.lstrip().startswith("%")):
-                pass
-            else:
-                new_file_remove_comment_lines.append(l)
-        main_file = '\n'.join(new_file_remove_comment_lines)
-        main_file = re.sub(r'(?<!\\)%.*', '', main_file)  # 使用正则表达式查找半行注释, 并替换为空字符串
-        return main_file
-    
-    main_file = rm_comments(main_file)
     main_file = merge_tex_files_(project_foler, main_file, mode)
     main_file = rm_comments(main_file)
 
