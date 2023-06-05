@@ -184,7 +184,34 @@ class LatexPaperSplit():
                 cnt += 1
                 # print(cnt)
                 if lt is None: break
-
+        def split_worker_reverse(root, pattern, flags=0):
+            lt = root
+            cnt = 0
+            pattern_compile = re.compile(pattern, flags)
+            while True:
+                if lt.preserve:
+                    while True:
+                        res = pattern_compile.search(lt.string)
+                        if not res: break
+                        before = res.string[:res.regs[1][0]]
+                        this = res.group(1)
+                        after = res.string[res.regs[1][1]:]
+                        # ======
+                        lt.string = before
+                        tmp  = lt.next
+                        # ======
+                        mid = LinkedListNode(this, False)
+                        lt.next = mid
+                        # ======
+                        aft = LinkedListNode(after, True)
+                        mid.next = aft
+                        aft.next = tmp
+                        # ======
+                        lt = aft
+                lt = lt.next
+                cnt += 1
+                # print(cnt)
+                if lt is None: break
         def split_worker_begin_end(root, pattern, flags=0, limit_n_lines=25):
             lt = root
             cnt = 0
@@ -198,7 +225,7 @@ class LatexPaperSplit():
                             for res in pattern_compile.finditer(target_string):
                                 cmd = res.group(1) # begin{what}
                                 this = res.group(2) # content between begin and end
-                                white_list = ['document', 'abstract', 'lemma', 'definition', 'sproof', 'em', 'emph', 'textit', 'textbf']
+                                white_list = ['document', 'abstract', 'lemma', 'definition', 'sproof', 'em', 'emph', 'textit', 'textbf', 'itemize', 'enumerate']
                                 if cmd in white_list or this.count('\n') > 25:
                                     sub_res = search_with_line_limit(this)
                                     if not sub_res: continue
@@ -235,6 +262,8 @@ class LatexPaperSplit():
 
         # root 是链表的头
         print('正在分解Latex源文件，构建链表结构')
+        # 吸收title与作者以上的部分
+        split_worker(root, r"(.*?)\\maketitle", re.DOTALL)
         # 删除iffalse注释
         split_worker(root, r"\\iffalse(.*?)\\fi", re.DOTALL)
         # 吸收在25行以内的begin-end组合
@@ -242,7 +271,6 @@ class LatexPaperSplit():
         # 吸收匿名公式
         split_worker(root, r"\$\$(.*?)\$\$", re.DOTALL)
         # 吸收其他杂项
-        split_worker(root, r"(.*?)\\maketitle", re.DOTALL)
         split_worker(root, r"\\section\{(.*?)\}")
         split_worker(root, r"\\section\*\{(.*?)\}")
         split_worker(root, r"\\subsection\{(.*?)\}")
@@ -272,7 +300,7 @@ class LatexPaperSplit():
         split_worker(root, r"\\vspace\{(.*?)\}")
         split_worker(root, r"\\hspace\{(.*?)\}")
         split_worker(root, r"\\end\{(.*?)\}")
-
+        split_worker_reverse(root, r"\\caption\{(.*?)\}", re.DOTALL)
         node = root
         while True:
             if len(node.string.strip('\n').strip(''))==0: node.preserve = True
