@@ -300,7 +300,7 @@ class LatexPaperSplit():
         split_worker(root, r"\\vspace\{(.*?)\}")
         split_worker(root, r"\\hspace\{(.*?)\}")
         split_worker(root, r"\\end\{(.*?)\}")
-        split_worker_reverse(root, r"\\caption\{(.*?)\}", re.DOTALL)
+        # split_worker_reverse(root, r"\\caption\{(.*?)\}", re.DOTALL)
         node = root
         while True:
             if len(node.string.strip('\n').strip(''))==0: node.preserve = True
