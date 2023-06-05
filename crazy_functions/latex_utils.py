@@ -278,6 +278,7 @@ class LatexPaperSplit():
         text, mask = split_worker(text, mask, r"\\end\{(.*?)\}")
         # text, mask = split_worker_reverse_caption(text, mask, r"\\caption\{(.*?)\}", re.DOTALL)
         root = convert_to_linklist(text, mask)
+
         # 修复括号
         node = root
         while True:
