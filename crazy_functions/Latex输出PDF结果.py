@@ -204,7 +204,7 @@ from toolbox import is_any_api_key
 def Latex翻译中文并重新编译PDF(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prompt, web_port):
 
     if not is_any_api_key(chatbot._cookies['api_key']):
-        chatbot.append(('缺少api_key。', "缺少api_key。\n\n1. 解决方案：直接在输入区键入api_key，然后回车提交。"))
+        chatbot.append(('缺少api_key。', "缺少api_key。\n\n1. 解决方案：直接在输入区键入api_key，然后提交。"))
         yield from update_ui(chatbot=chatbot, history=history, msg="缺少api_key") # 刷新界面
         return
 
@@ -218,7 +218,7 @@ def Latex翻译中文并重新编译PDF(txt, llm_kwargs, plugin_kwargs, chatbot,
     # <-------------- check deps ------------->
     try:
         import glob, os, time, subprocess
-        subprocess.Popen(['pdflatex', '-version'])
+        # subprocess.Popen(['pdflatex', '-version'])
         from .latex_utils import Latex精细分解与转化, 编译Latex
     except Exception as e:
         chatbot.append([ f"解析项目: {txt}",
