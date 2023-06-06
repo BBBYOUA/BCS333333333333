@@ -8,13 +8,14 @@ FROM fuqingxu/python311_texlive_ctex:latest
 # 指定路径
 WORKDIR /gpt
 
+ARG useProxyNetwork=''
+
 RUN $useProxyNetwork pip3 install gradio openai numpy arxiv rich -i https://pypi.douban.com/simple/
 RUN $useProxyNetwork pip3 install colorama Markdown pygments pymupdf -i https://pypi.douban.com/simple/
 
 # 装载项目文件
 COPY . .
 
-ARG useProxyNetwork=''
 
 # 安装依赖
 RUN $useProxyNetwork pip3 install -r requirements.txt -i https://pypi.douban.com/simple/

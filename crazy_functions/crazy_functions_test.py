@@ -187,7 +187,7 @@ def test_Latex():
     # txt = r"https://arxiv.org/abs/2305.18290"
     # txt = r"https://arxiv.org/abs/2305.17608"
     # txt = r"https://arxiv.org/abs/2211.16068"                     #  ACE
-    # txt = r"C:\Users\fuqingxu\arxiv_cache\2211.16068\workfolder"  #  ACE
+    # txt = r"C:\Users\x\arxiv_cache\2211.16068\workfolder"  #  ACE
     txt = r"https://arxiv.org/abs/2002.09253"
     for cookies, cb, hist, msg in (Latex翻译中文并重新编译PDF)(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prompt, web_port):
         cli_printer.print(cb)   #  print(cb)

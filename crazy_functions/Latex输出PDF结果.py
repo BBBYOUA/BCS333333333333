@@ -218,7 +218,7 @@ def Latex翻译中文并重新编译PDF(txt, llm_kwargs, plugin_kwargs, chatbot,
     # <-------------- check deps ------------->
     try:
         import glob, os, time, subprocess
-        # subprocess.Popen(['pdflatex', '-version'])
+        subprocess.Popen(['pdflatex', '-version'])
         from .latex_utils import Latex精细分解与转化, 编译Latex
     except Exception as e:
         chatbot.append([ f"解析项目: {txt}",
