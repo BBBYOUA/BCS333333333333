@@ -544,7 +544,7 @@ def remove_buggy_lines(file_path, log_path, tex_name, tex_name_pure, n_fix, work
             f.writelines(file_lines)
         return True, f"{tex_name_pure}_fix_{n_fix}", buggy_lines
     except:
-        return False, 0, [0]
+        return False, -1, [-1]
     
 
 def compile_latex_with_timeout(command, timeout=60):
