@@ -544,6 +544,7 @@ def remove_buggy_lines(file_path, log_path, tex_name, tex_name_pure, n_fix, work
             f.writelines(file_lines)
         return True, f"{tex_name_pure}_fix_{n_fix}", buggy_lines
     except:
+        print("Fatal error occurred, but we cannot identify error, please download zip, read latex log, and compile manually.")
         return False, -1, [-1]
     
 
