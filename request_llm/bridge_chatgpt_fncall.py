@@ -91,7 +91,7 @@ def predict_no_ui_long_connection(inputs, llm_kwargs, history=[], sys_prompt="",
     json_data = json.loads(result)
     if 'error' in json_data:
         raise RuntimeError(f"OpenAI 返回错误: {json_data['error']}")
-    return json_data["choices"]
+    return result
 
 
 def generate_payload(inputs, llm_kwargs, history, system_prompt, stream):
