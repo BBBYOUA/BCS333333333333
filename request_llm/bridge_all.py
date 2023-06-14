@@ -16,6 +16,8 @@ from toolbox import get_conf, trimmed_format_exc
 from .bridge_chatgpt import predict_no_ui_long_connection as chatgpt_noui
 from .bridge_chatgpt import predict as chatgpt_ui
 
+from .bridge_chatgpt_fncall import predict_no_ui_long_connection as chatgptfncall_noui
+
 from .bridge_chatglm import predict_no_ui_long_connection as chatglm_noui
 from .bridge_chatglm import predict as chatglm_ui
 
@@ -130,6 +132,7 @@ model_info = {
         "tokenizer": tokenizer_gpt35,
         "token_cnt": get_token_num_gpt35,
     },
+
     # newbing
     "newbing": {
         "fn_with_ui": newbing_ui,
@@ -140,6 +143,15 @@ model_info = {
         "token_cnt": get_token_num_gpt35,
     },
 
+    # openai
+    "gpt-call-fn": {
+        "fn_with_ui": None,
+        "fn_without_ui": chatgptfncall_noui,
+        "endpoint": openai_endpoint,
+        "max_token": 4096,
+        "tokenizer": tokenizer_gpt35,
+        "token_cnt": get_token_num_gpt35,
+    },
 }
 
 
