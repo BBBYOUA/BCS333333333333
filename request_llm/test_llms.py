@@ -10,21 +10,44 @@ def validate_path():
     
 validate_path() # validate path so you can run from base directory
 if __name__ == "__main__":
-    from request_llm.bridge_newbingfree import predict_no_ui_long_connection
+    from toolbox import get_conf, ChatBotWithCookies
+    from request_llm.bridge_chatgpt_fncall import predict_no_ui_long_connection
     # from request_llm.bridge_moss import predict_no_ui_long_connection
     # from request_llm.bridge_jittorllms_pangualpha import predict_no_ui_long_connection
     # from request_llm.bridge_jittorllms_llama import predict_no_ui_long_connection
+    proxies, WEB_PORT, LLM_MODEL, CONCURRENT_COUNT, AUTHENTICATION, CHATBOT_HEIGHT, LAYOUT, API_KEY = \
+        get_conf('proxies', 'WEB_PORT', 'LLM_MODEL', 'CONCURRENT_COUNT', 'AUTHENTICATION', 'CHATBOT_HEIGHT', 'LAYOUT', 'API_KEY')
 
     llm_kwargs = {
         'max_length': 512,
         'top_p': 1,
+        'api_key': API_KEY,
+        'llm_model': LLM_MODEL,
         'temperature': 1,
     }
 
-    result = predict_no_ui_long_connection(inputs="你好", 
+    functions = [
+        {
+            "name": "get_current_weather",  # The name of the function to be called. Must be a-z, A-Z, 0-9, or contain underscores and dashes, with a maximum length of 64.
+            "description": "Get the current weather in a given location",   # The description of what the function does.
+            "parameters": { # The parameters the functions accepts, described as a JSON Schema object. See the guide for examples, and the JSON Schema reference for documentation about the format.
+                "type": "object",
+                "properties": {
+                    "location": {
+                        "type": "string",
+                        "description": "The city and state, e.g. San Francisco, CA",
+                    },
+                    "unit": {"type": "string", "enum": ["celsius", "fahrenheit"]},
+                },
+                "required": ["location"],
+            },
+        }
+    ]
+
+    result = predict_no_ui_long_connection(inputs="Get the current weather in Beijing", 
                                         llm_kwargs=llm_kwargs,
                                         history=[],
-                                        sys_prompt="")
+                                        sys_prompt=functions)
     print('final result:', result)
 
 
